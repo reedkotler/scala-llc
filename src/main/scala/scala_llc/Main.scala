@@ -5,30 +5,29 @@ import scala.io.Source
 class Token
 
 
-
 object Main {
 
   // Grammar based on https://github.com/llir/grammar
 
   // tbd: needs more scala clean up to make it look nicer
 
-  def isAsciiLetter(c: Char) = ('A' <= c &&  c <= 'Z') || ('a' <= c && c <= 'z')
+  def isAsciiLetter(c: Char) = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
 
-  def isLetter(c: Char): Boolean = {
+  def isLetter(c: Char) =
     c match {
       case x if isAsciiLetter(c) => true
       case '$' | '-' | '.' | '_' => true
       case _ => false
     }
-  }
 
-  def isEscapeLetter(c: Char) : Boolean = {
+
+  def isEscapeLetter(c: Char) =
     c match {
       case x if isLetter(c) => true
       case '\\' => true
       case _ => false
     }
-  }
+
 
   def isDecimalDigit(c: Char) = ('0' <= c && c <= '9')
 
@@ -39,7 +38,7 @@ object Main {
          'a' | 'b' | 'c' | 'd' | 'e' | 'f' => true
   }
 
-  def isWhiteSpace(c: Char) : Boolean =
+  def isWhiteSpace(c: Char) =
     c match {
       case ' ' | '\t' => true
       case default => false
@@ -51,11 +50,11 @@ object Main {
 
   def scanComment(s: String) = (s, "")
 
-  def scanWhiteSpace(s: String) = s.span(x =>  isWhiteSpace(x))
+  def scanWhiteSpace(s: String) = s.span(x => isWhiteSpace(x))
 
-  def scanName(s: String)  = s.span(x => isLetter(x) || isDecimalDigit(x) )
+  def scanName(s: String) = s.span(x => isLetter(x) || isDecimalDigit(x))
 
-  def scanEscapeName(s: String) = s.span(x => isEscapeLetter(x) || isDecimalDigit(x) )
+  def scanEscapeName(s: String) = s.span(x => isEscapeLetter(x) || isDecimalDigit(x))
 
   def scanQuotedName(s: String) = scanStringLiteral(s)
 
@@ -74,11 +73,24 @@ object Main {
     ('-' + result._1, result._2)
   }
 
-  def scanQuotedStringLiteral(s: String) : (String, String) = {
-    val result = s.substring(1).span(x => x != '"' )
+  def scanQuotedStringLiteral(s: String): (String, String) = {
+    val result = s.substring(1).span(x => x != '"')
     (result._1, result._2.substring(1))
   }
 
+  val reservedWords = List(
+    "add", "and", "any", "asm", "ashr", "c", "comdat", "constant", "declare",
+    "define", "double", "exactmatch", "externally_initialized",
+    "extractelement", "extractvalue", "fadd", "false", "fdiv", "float", "fmul",
+    "fp128", "fpext", "fptrunc", "fptoui", "frem" , "fsub", "half", "global",
+    "label", "getelementptr", "insertelement", "insertvalue", "largest", "lshr",
+    "metadata", "module", "mul", "noduplicates", "null", "opaque", "or",
+    "ppc_fp128", "samesize", "sdiv", "sext", "shl", "shufflevector", "srem",
+    "sub", "true" , "trunc", "type", "udiv", "undef", "urem", "void",
+    "x86_fp80", "xor", "zeroinitializer", "zext")
+
+  val singleCharOpSymbols = List("=", ",", "(", ")", "{", "}", "!", "<", ">", "[", "]")
+  val multipleCharOpSymbols = List("...")
 
 
   def scanLine(s: String): List[Token] = {
@@ -89,16 +101,15 @@ object Main {
   }
 
 
-
   def unitTest(): Unit = {
     var s = scanQuotedStringLiteral("\"hello\"")
-    println (s)
+    println(s)
     s = scanQuotedStringLiteral("\"hello\" some more")
-    println (s)
+    println(s)
     s = scanName("today")
-    println (s)
+    println(s)
     s = scanName("today=tomorrow")
-    println (s)
+    println(s)
     s = scanNegDecimalLit("-5")
     println(s)
     s = scanNegDecimalLit("-5+10")
@@ -112,7 +123,7 @@ object Main {
 
     unitTest()
 
-    if (args.length  == 1) {
+    if (args.length == 1) {
       val filename = args(0)
       for (line <- Source.fromFile(filename).getLines) {
         println(line)
