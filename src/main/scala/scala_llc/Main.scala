@@ -2,8 +2,6 @@ package scala_llc
 
 import scala.io.Source
 
-
-
 object Main {
 
   class IrToken
@@ -88,17 +86,6 @@ object Main {
     (StringLiteral(result._1), result._2.substring(1))
   }
 
-  val reservedWordsSet = Set(
-    "add", "and", "any", "asm", "ashr", "c", "comdat", "constant", "declare",
-    "define", "double", "exactmatch", "externally_initialized",
-    "extractelement", "extractvalue", "fadd", "false", "fdiv", "float", "fmul",
-    "fp128", "fpext", "fptrunc", "fptoui", "frem" , "fsub", "half", "global",
-    "label", "getelementptr", "insertelement", "insertvalue", "largest", "lshr",
-    "metadata", "module", "mul", "noduplicates", "null", "opaque", "or",
-    "ppc_fp128", "samesize", "sdiv", "sext", "shl", "shufflevector", "srem",
-    "sub", "true" , "trunc", "type", "udiv", "undef", "urem", "void",
-    "x86_fp80", "xor", "zeroinitializer", "zext")
-
   val reservedWordsMap = Map[String, IrToken]("and" -> And, "target" -> Target)
 
   val singleCharOpSymbols = List("=", ",", "(", ")", "{", "}", "!", "<", ">", "[", "]")
@@ -141,39 +128,26 @@ object Main {
     }
   }
 
-
-  def unitTest(): Unit = {
-    var s = scanQuotedStringLiteral("\"hello\"")
-    println(s)
-    var t = scanQuotedStringLiteral("\"hello\" some more")
-    println(t)
-    println(scanName("today"))
-    println(scanName("today=tomorrow"))
-    println(scanNegDecimalLit("-5"))
-    println(scanNegDecimalLit("-5+10"))
-    println(scanMetadataName("!mymeta"))
-    var x = scanLine("a=b")
-    println(x)
-    x = scanLine("a = b; comment")
-    println(x)
-    x = scanLine("and")
-    println(x)
-    x = scanLine("; ModuleID = 'null.c'")
-    println(x)
-    x = scanLine("source_filename = \"null.c\"")
-    println(x)
+  // TBD: need to choose how we will concatenate these lists efficiently
+  // this way here is very slow because it will need to read the whole
+  // first list to find the end. There are lots of options here in scala for
+  // how to handle this issue.
+  //
+  def getTokens(filename: String): List[IrToken] = {
+    var tokens = List[IrToken]()
+    for (line <- Source.fromFile(filename).getLines) {
+      val lineTokens = scanLine(line)
+      if (lineTokens.length != 0)
+        tokens = tokens ::: lineTokens
+    }
+    tokens
   }
 
-
   def main(args: Array[String]) = {
-
-    unitTest()
-
     if (args.length == 1) {
       val filename = args(0)
-      for (line <- Source.fromFile(filename).getLines) {
-        println(scanLine(line))
-      }
+      val tokens = getTokens(filename)
+      print(tokens)
     }
     else {
       println("scala-llc <file-name>")
