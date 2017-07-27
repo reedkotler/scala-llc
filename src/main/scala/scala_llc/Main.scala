@@ -6,6 +6,8 @@ object Main {
 
   class IrToken
 
+  def doDebug = false
+
   case class Identifier(s: String) extends IrToken
   case class StringLiteral(s: String) extends IrToken
   case class Unparsed(s: String) extends IrToken
@@ -148,14 +150,23 @@ object Main {
     tokens
   }
 
+  def emitHeader = {
+    println("\t.section\t__TEXT,__text,regular,pure_instructions")
+    println("\t.macosx_version_min 10, 12")
+  }
+
+  def emitTail = {
+    println(".subsections_via_symbols")
+  }
+
   def processSourceFile(name: String) =
-     println("process source file: ", name)
+     if (doDebug) Console.println("process source file: ", name)
 
   def setTargetLayout(form: String) =
-    println("target layout: ", form)
+    if (doDebug) Console.println("target layout: ", form)
 
   def setTargetTriple(t: String) =
-    println("target triple: ", t)
+    if (doDebug) Console.println("target triple: ", t)
 
   def parseModule(p: List[IrToken]): Unit = {
     p match {
@@ -174,7 +185,9 @@ object Main {
       val filename = args(0)
       val tokens = getTokens(filename)
       // print(tokens)
+      emitHeader
       parseModule(tokens)
+      emitTail
     }
     else {
       println("scala-llc <file-name>")
