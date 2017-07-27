@@ -11,9 +11,12 @@ object Main {
   case class Unparsed(s: String) extends IrToken
   case object And extends IrToken
   case object Assign extends IrToken
+  case object DataLayout extends IrToken
   case object EndOfString extends IrToken
   case object Comment extends IrToken
+  case object SourceFileName extends IrToken
   case object Target extends IrToken
+  case object Triple extends IrToken
 
   // Grammar based on https://github.com/llir/grammar
 
@@ -86,7 +89,9 @@ object Main {
     (StringLiteral(result._1), result._2.substring(1))
   }
 
-  val reservedWordsMap = Map[String, IrToken]("and" -> And, "target" -> Target)
+  val reservedWordsMap = Map[String, IrToken]("and" -> And,
+    "datalayout" -> DataLayout, "source_filename" -> SourceFileName, "target" -> Target,
+    "triple" -> Triple)
 
   val singleCharOpSymbols = List("=", ",", "(", ")", "{", "}", "!", "<", ">", "[", "]")
   val multipleCharOpSymbols = List("...")
@@ -143,11 +148,33 @@ object Main {
     tokens
   }
 
+  def processSourceFile(name: String) =
+     println("process source file: ", name)
+
+  def setTargetLayout(form: String) =
+    println("target layout: ", form)
+
+  def setTargetTriple(t: String) =
+    println("target triple: ", t)
+
+  def parseModule(p: List[IrToken]): Unit = {
+    p match {
+      case List(SourceFileName, Assign, StringLiteral(x), _*)  =>
+        processSourceFile(x); parseModule(p.drop(3))
+      case List(Target, DataLayout, Assign, StringLiteral(x), _*  )=>
+        setTargetLayout(x); parseModule(p.drop(4))
+      case List(Target, Triple, Assign, StringLiteral(x), _*) =>
+        setTargetTriple(x); parseModule(p.drop(4))
+      case _ =>
+    }
+  }
+
   def main(args: Array[String]) = {
     if (args.length == 1) {
       val filename = args(0)
       val tokens = getTokens(filename)
-      print(tokens)
+      // print(tokens)
+      parseModule(tokens)
     }
     else {
       println("scala-llc <file-name>")
