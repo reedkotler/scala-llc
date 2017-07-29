@@ -12,13 +12,36 @@ object Main {
   case class StringLiteral(s: String) extends IrToken
   case class Unparsed(s: String) extends IrToken
   case object And extends IrToken
+  case object Appending extends IrToken
+  case object Attributes extends IrToken
+  case object AvailableExternally extends IrToken
   case object Assign extends IrToken
-  case object DataLayout extends IrToken
-  case object EndOfString extends IrToken
+  case class  AttrGroupId(s: String) extends  IrToken
   case object Comment extends IrToken
+  case object Common extends  IrToken
+  case object DataLayout extends IrToken
+  case object Define extends IrToken
+  case object EndOfString extends IrToken
+  case class  GlobalIdentifier(s: String) extends IrToken
+  case object Internal extends  IrToken
+  case object LeftBracket extends IrToken
+  case object LeftParen extends  IrToken
+  case object Linkonce extends  IrToken
+  case object LinkonceOdr extends IrToken
+  case object Nounwind extends IrToken
+  case object Ssp extends  IrToken
+  case object Private extends IrToken
+  case object Ret extends IrToken
+  case object RightBracket extends IrToken
+  case object RightParen extends  IrToken
   case object SourceFileName extends IrToken
   case object Target extends IrToken
   case object Triple extends IrToken
+  case object Void extends  IrToken
+  case object Uwtable extends  IrToken
+  case object Weak extends IrToken
+  case object WeakOdr extends IrToken
+  case object None extends IrToken
 
   // Grammar based on https://github.com/llir/grammar
 
@@ -86,14 +109,22 @@ object Main {
     ('-' + result._1, result._2)
   }
 
+  def scanQuotedStringLiteralRaw(s: String): (String, String) = {
+    val result = s.substring(1).span(x => x != '"')
+    (result._1, result._2.substring(1))
+  }
+
   def scanQuotedStringLiteral(s: String): (IrToken, String) = {
     val result = s.substring(1).span(x => x != '"')
     (StringLiteral(result._1), result._2.substring(1))
   }
 
-  val reservedWordsMap = Map[String, IrToken]("and" -> And,
-    "datalayout" -> DataLayout, "source_filename" -> SourceFileName, "target" -> Target,
-    "triple" -> Triple)
+  val reservedWordsMap = Map[String, IrToken]("and" -> And,"attributes" ->Attributes,
+    "datalayout" -> DataLayout, "define" -> Define,
+    "nounwind" -> Nounwind,
+    "ret" -> Ret, "ssp" -> Ssp,
+    "source_filename" -> SourceFileName, "target" -> Target,
+    "triple" -> Triple, "uwtable" -> Uwtable, "void" -> Void)
 
   val singleCharOpSymbols = List("=", ",", "(", ")", "{", "}", "!", "<", ">", "[", "]")
   val multipleCharOpSymbols = List("...")
@@ -106,8 +137,29 @@ object Main {
       (Identifier(s1), s2)
   }
 
-  def nextToken(s: String): (IrToken, String) = {
+  def scanGlobalIdent(s_ : String) : (IrToken, String) = {
+    val s = s_.substring(1)
+    s(1) match {
+      case x if isLetter(x) =>
+        val (a, b) = scanName(s)
+        (GlobalIdentifier(a), b)
+      case x if isDecimalDigit(x) =>
+        val (a,b) = scanId(s)
+        (GlobalIdentifier(a), b)
+      case '"' =>
+        val (a,b) = scanQuotedStringLiteralRaw(s)
+        (GlobalIdentifier(a),b)
+    }
+  }
+
+  def scanAttrGroupId(s: String): (IrToken, String) = {
+    val (a,b ) = scanDecimals(s.substring(1))
+    (AttrGroupId(a), b)
+  }
+
+    def nextToken(s: String): (IrToken, String) = {
     val s_ = s.dropWhile(isWhiteSpace)
+      //if (doDebug ) println(s_)
     if (s_.length() == 0)
       return (EndOfString, "")
     s_(0) match {
@@ -116,6 +168,12 @@ object Main {
       case ';' => (EndOfString, "")
       case '"' => scanQuotedStringLiteral(s_)
       case '!' => (EndOfString, "")  // for now treat metadata as a comment
+      case '@' => scanGlobalIdent(s_)
+      case '{' => (LeftBracket, s_.substring(1))
+      case '}' => (RightBracket, s_.substring(1))
+      case '#' => scanAttrGroupId(s_)
+      case '(' => (LeftParen, s_.substring(1))
+      case ')' => (RightParen, s_.substring(1))
       case _ =>     (Unparsed(s_), "")
 
     }
@@ -168,6 +226,12 @@ object Main {
   def setTargetTriple(t: String) =
     if (doDebug) Console.println("target triple: ", t)
 
+  def processDefine(p: List[IrToken]): List[IrToken] = {
+    var p_ = p
+
+    p_
+  }
+
   def parseModule(p: List[IrToken]): Unit = {
     p match {
       case List(SourceFileName, Assign, StringLiteral(x), _*)  =>
@@ -176,7 +240,9 @@ object Main {
         setTargetLayout(x); parseModule(p.drop(4))
       case List(Target, Triple, Assign, StringLiteral(x), _*) =>
         setTargetTriple(x); parseModule(p.drop(4))
-      case _ =>
+      //case List(Define, _*) =>
+       // parseModule(processDefine(p.drop(1)))
+      case _ => List()
     }
   }
 
@@ -184,7 +250,7 @@ object Main {
     if (args.length == 1) {
       val filename = args(0)
       val tokens = getTokens(filename)
-      // print(tokens)
+      if (doDebug) println(tokens)
       emitHeader
       parseModule(tokens)
       emitTail
