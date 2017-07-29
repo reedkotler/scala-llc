@@ -234,12 +234,15 @@ object Main {
 
   def parseModule(p: List[IrToken]): Unit = {
     p match {
-      case List(SourceFileName, Assign, StringLiteral(x), _*)  =>
-        processSourceFile(x); parseModule(p.drop(3))
-      case List(Target, DataLayout, Assign, StringLiteral(x), _*  )=>
-        setTargetLayout(x); parseModule(p.drop(4))
-      case List(Target, Triple, Assign, StringLiteral(x), _*) =>
-        setTargetTriple(x); parseModule(p.drop(4))
+      case SourceFileName :: Assign ::  StringLiteral(x) :: y =>
+        processSourceFile(x)
+        parseModule(y)
+      case Target :: DataLayout ::  Assign ::  StringLiteral(x) :: y =>
+        setTargetLayout(x)
+        parseModule(y)
+      case Target :: Triple :: Assign ::  StringLiteral(x) :: y =>
+        setTargetTriple(x)
+        parseModule(y)
       //case List(Define, _*) =>
        // parseModule(processDefine(p.drop(1)))
       case _ => List()
