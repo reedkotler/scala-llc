@@ -227,10 +227,70 @@ object Main {
   def setTargetTriple(t: String) =
     if (doDebug) Console.println("target triple: ", t)
 
-  def processDefine(p: List[IrToken]): List[IrToken] = {
-    var p_ = p
+  def parseRet(p_ : List[IrToken]): List[IrToken] = {
+    var p = p_
+    p match  {
+      case Void :: x =>
+        p = x
+    }
+    p
+  }
 
-    p_
+
+  def parseBasicBlock(p_ : List[IrToken]): List[IrToken] = {
+    var p = p_
+    p match {
+      case Ret :: x => parseRet(x)
+        p = x
+      case _ =>
+    }
+    p
+  }
+
+  def parseBasicBlockList(p_ : List[IrToken]): List[IrToken] = {
+    var p = p_
+    p match {
+      case Ret :: x =>
+        p = parseBasicBlockList(parseBasicBlock(p))
+      case _ =>
+    }
+    p
+  }
+
+  def parseFunctionBody(p_ : List[IrToken]): List[IrToken] = {
+    var p = p_
+    p match {
+      case LeftCurlyBracket :: x => p = x
+    }
+    p = parseBasicBlockList(p)
+    p
+  }
+
+  def parseDefine(p_ : List[IrToken]): List[IrToken] = {
+    var p = p_
+    p match {
+      case Void :: x =>
+        p = x
+    }
+    p match {
+      case GlobalIdentifier(g) :: x =>
+        p = x
+    }
+    p match {
+      case LeftParen :: x =>
+        p = x
+    }
+    p match {
+      case RightParen :: x =>
+        p = x
+    }
+    p match {
+      case AttrGroupId(g) :: x =>
+        p = x
+    }
+    p = parseFunctionBody(p)
+    println("finishing parseDefine")
+    p
   }
 
   def parseModule(p: List[IrToken]): Unit = {
@@ -244,8 +304,8 @@ object Main {
       case Target :: Triple :: Assign ::  StringLiteral(x) :: y =>
         setTargetTriple(x)
         parseModule(y)
-      //case List(Define, _*) =>
-       // parseModule(processDefine(p.drop(1)))
+      case Define :: defineBody =>
+       parseModule(parseDefine(defineBody))
       case _ => List()
     }
   }
