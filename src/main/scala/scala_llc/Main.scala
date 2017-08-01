@@ -266,6 +266,23 @@ object Main {
     p
   }
 
+  def beginFunction(g: String) = {
+    val n = "_" + g
+    println("\t.globl %s".format( n))
+    println("\t.p2align\t4, 0x90")
+    println("%s:\t\t\t\t\t\t\t##@%s".format(n, g))
+    println("\t.cfi_startproc")
+    println("\t.cfi_def_cfa_offset 16")
+    println("\t.cfi_offset %rbp, -16")
+    println("\tmovq\t%rsp, %rbp")
+  }
+
+  def endFunction(): Unit = {
+    println("\t.cfi_def_cfa_register %rbp")
+    println("\tpopq\t%rbp")
+    println("\tretq")
+    println("\t.cfi_endproc")
+  }
   def parseDefine(p_ : List[IrToken]): List[IrToken] = {
     var p = p_
     p match {
@@ -274,6 +291,7 @@ object Main {
     }
     p match {
       case GlobalIdentifier(g) :: x =>
+        beginFunction(g)
         p = x
     }
     p match {
@@ -289,7 +307,6 @@ object Main {
         p = x
     }
     p = parseFunctionBody(p)
-    println("finishing parseDefine")
     p
   }
 
