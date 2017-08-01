@@ -292,7 +292,6 @@ object Main {
     p match {
       case GlobalIdentifier(g) :: x =>
         beginFunction(g)
-        endFunction()
         p = x
     }
     p match {
@@ -308,6 +307,7 @@ object Main {
         p = x
     }
     p = parseFunctionBody(p)
+    endFunction()
     p
   }
 
