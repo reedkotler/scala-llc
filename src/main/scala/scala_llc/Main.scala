@@ -292,6 +292,7 @@ object Main {
     p match {
       case GlobalIdentifier(g) :: x =>
         beginFunction(g)
+        endFunction()
         p = x
     }
     p match {
